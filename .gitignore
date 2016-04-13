@@ -1,4 +1,3 @@
-/database.db
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]
@@ -64,3 +63,6 @@ target/
 
 # IDEA
 .idea/
+
+data/
+database.db
