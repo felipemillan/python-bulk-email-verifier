@@ -35,13 +35,11 @@
 			$("#domain_list_len").text('Domain list: ' + data["domain_list_len"] + ' entries');
 			$("#mx_list_len").text('MX list: ' + data["mx_list_len"] + ' entries');
 			$("#use_tor").text('Using TOR: ' + data["use_tor"]);
-			$("#exit_node_rotation").text('TOR exit node rotates every ' + data["exit_node_rotation"] + ' requests');
-				
+
 			$("#total").text('Total number of entries: ' + data['total_count']);
 			$("#processed").text('Numbers of processed entries: ' + data['processed_count']);
 			$("#valid").text('Numbers of valid entries: ' + data['valid_count']);
-			$("#threads").text('Active threads: ' + data["active_threads"])
-			
+
 			if (data["active_threads"]==0) {
 				$("#progressOverall").css("width", (100 - data['progress_valid']) + "%");
 				$("#progressValid").css("width", data['progress_valid'] + "%");
@@ -120,7 +118,6 @@
 				<p id="domain_list_len"></p>
 				<p id="mx_list_len"></p>
 				<p id="use_tor"></p>
-				<p id="exit_node_rotation"></p>
 			</div>
 		</div>			
 	</div>
@@ -139,7 +136,6 @@
 					<div class="progress-bar progress-bar" style="width: 0%" id="progressOverall" />
 					</div>
 				</div>
-				<p id="threads"></p>
 			</div>
 		</div>		
 	</div>

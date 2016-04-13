@@ -1,12 +1,12 @@
+import os
 import smtplib
 import socket
 from random import choice
-import os
+from random import randint
 
 import dns
 import socks
 from celery import Celery
-
 from dns.resolver import NXDOMAIN, NoAnswer
 from stem import Signal
 from stem.control import Controller
@@ -62,7 +62,7 @@ class SqlAlchemyTask(celery.Task):
     abstract = True
 
     def after_return(self, status, retval, task_id, args, kwargs, einfo):
-        #session.remove()
+        # session.remove()
         pass
 
 
@@ -136,9 +136,10 @@ def verify_address(entry_id, mx_list, use_tor, rotation_num):
     if use_tor:
         server._get_socket = tor_custom_connect
 
-    # if use_tor and rotation_num:
-    #     if rotation_num == randint(0, rotation_num):
-    #         change_tor_node(tor_port)
+    if use_tor and rotation_num:
+        if rotation_num == randint(0, rotation_num):
+            for tor_port in TOR_PORT:
+                change_tor_node(tor_port)
 
     # SMTP Conversation
     try:

@@ -1,21 +1,18 @@
-import threading
 import time
 from email import encoders
 
+from email.MIMEBase import MIMEBase
+from email.MIMEMultipart import MIMEMultipart
+from email.MIMEText import MIMEText
 from flask import Blueprint, render_template, flash, request, redirect, url_for, jsonify
-from celery.task.control import discard_all
 from flask.ext.login import login_user, logout_user, login_required
 
 from verifier_app.extensions import cache
+from verifier_app.filters import *
 from verifier_app.forms import LoginForm
 from verifier_app.models import User, EmailEntry, db, DBStoredValue
-from verifier_app.filters import *
-from verifier_app.tasks import verify_address
 from verifier_app.tasks import start_celery, stop_celery
-
-from email.MIMEMultipart import MIMEMultipart
-from email.MIMEBase import MIMEBase
-from email.MIMEText import MIMEText
+from verifier_app.tasks import verify_address
 
 main = Blueprint('main', __name__)
 thread = None
@@ -153,16 +150,9 @@ def check():
 
         time.sleep(5)
         for entry_id in ids:
-            verify_address.delay(entry_id, mx_list, use_tor, 0)
-        # p = Processor(mx_list, use_tor, exit_node_rotation)
-        # t = threading.Thread(target=p.start_processing)
-        # t.setDaemon(True)
-        # t.start()
-
+            verify_address.delay(entry_id, mx_list, use_tor, 300)
 
         return redirect("/result")
-
-
 
 
 def store_value_in_db(name, val):
@@ -200,7 +190,6 @@ def get_tool_status():
             result["total_count"] = str(total_count)
             result["processed_count"] = str(processed_count)
             result["valid_count"] = str(valid_count)
-            result["active_threads"] = threading.active_count() - 2
 
             result['progress_overall'] = (float(processed_count) / total_count) * 100
             result['progress_valid'] = (float(valid_count) / total_count) * 100
@@ -214,7 +203,6 @@ def get_tool_status():
             result["domain_list_len"] = int(get_value_from_db("domain_list_len"))
             result["mx_list_len"] = int(get_value_from_db("mx_list_len"))
             result["use_tor"] = bool(get_value_from_db("use_tor"))
-            result["exit_node_rotation"] = int(get_value_from_db("exit_node_rotation"))
 
             return jsonify(result)
         except Exception as e:
