@@ -1,10 +1,7 @@
 import smtplib
 import socket
 from random import choice
-from random import randint
-from time import sleep
 
-import celery
 import dns
 import socks
 from celery import Celery
@@ -15,12 +12,44 @@ from stem.control import Controller
 from datab import db_session as session
 from models import EmailEntry
 
-app = Celery('verifier_app.tasks', broker='redis://localhost:6379/0', backend='redis://localhost')
-app.control.time_limit('verifier_app.tasks.verify_address', soft=45, hard=60, reply=True)
-
 TOR_HOST = '127.0.0.1'
 TOR_PORT = [9051, 9052, 9053, 9054]
 
+import celery
+import multiprocessing
+
+
+class WorkerProcess(multiprocessing.Process):
+    def __init__(self):
+        super(name='celery_worker_process')
+
+    def run(self):
+        argv = [
+            'worker',
+            '--loglevel=WARNING',
+            '--hostname=local',
+        ]
+        app.worker_main(argv)
+
+
+def start_celery():
+    global worker_process
+    worker_process = WorkerProcess()
+    worker_process.start()
+
+
+def stop_celery():
+    global worker_process
+    if worker_process:
+        worker_process.terminate()
+        worker_process = None
+
+
+worker_name = 'celery@local'
+worker_process = None
+
+app = Celery('verifier_app.tasks', broker='redis://localhost:6379/0', backend='redis://localhost')
+app.control.time_limit('verifier_app.tasks.verify_address', soft=45, hard=60, reply=True)
 
 class SqlAlchemyTask(celery.Task):
     """An abstract Celery Task that ensures that the connection the the
