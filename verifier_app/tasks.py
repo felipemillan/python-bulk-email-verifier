@@ -1,10 +1,12 @@
 import smtplib
 import socket
 from random import choice
+import os
 
 import dns
 import socks
 from celery import Celery
+
 from dns.resolver import NXDOMAIN, NoAnswer
 from stem import Signal
 from stem.control import Controller
@@ -21,18 +23,20 @@ import multiprocessing
 
 class WorkerProcess(multiprocessing.Process):
     def __init__(self):
-        super(name='celery_worker_process')
+        multiprocessing.Process.__init__(self)
 
     def run(self):
         argv = [
             'worker',
-            '--loglevel=WARNING',
-            '--hostname=local',
+            '--loglevel=INFO',
+            '--concurrency=24',
+            '--purge'
         ]
         app.worker_main(argv)
 
 
 def start_celery():
+    os.environ["C_FORCE_ROOT"] = 'true'
     global worker_process
     worker_process = WorkerProcess()
     worker_process.start()
@@ -51,13 +55,15 @@ worker_process = None
 app = Celery('verifier_app.tasks', broker='redis://localhost:6379/0', backend='redis://localhost')
 app.control.time_limit('verifier_app.tasks.verify_address', soft=45, hard=60, reply=True)
 
+
 class SqlAlchemyTask(celery.Task):
     """An abstract Celery Task that ensures that the connection the the
     database is closed on task completion"""
     abstract = True
 
     def after_return(self, status, retval, task_id, args, kwargs, einfo):
-        session.remove()
+        #session.remove()
+        pass
 
 
 # Custom connection for SMTP lib
@@ -157,4 +163,4 @@ def verify_address(entry_id, mx_list, use_tor, rotation_num):
     entry.set_processed(True)
 
     session.add(entry)
-    session.commit()
+    session.flush()

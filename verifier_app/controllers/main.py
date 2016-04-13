@@ -3,14 +3,15 @@ import time
 from email import encoders
 
 from flask import Blueprint, render_template, flash, request, redirect, url_for, jsonify
-
+from celery.task.control import discard_all
 from flask.ext.login import login_user, logout_user, login_required
 
 from verifier_app.extensions import cache
 from verifier_app.forms import LoginForm
 from verifier_app.models import User, EmailEntry, db, DBStoredValue
 from verifier_app.filters import *
-from verifier_app.db_worker import Processor
+from verifier_app.tasks import verify_address
+from verifier_app.tasks import start_celery, stop_celery
 
 from email.MIMEMultipart import MIMEMultipart
 from email.MIMEBase import MIMEBase
@@ -124,15 +125,21 @@ def check():
         options["after_domains_len"] = len(address_list)
         store_value_in_db("after_domains_len", len(address_list))
 
+        stop_celery()
+
         # Deleting previous data
         EmailEntry.query.delete()
         db.session.commit()
+
+        ids = []
 
         for address in address_list:
             new_entry = EmailEntry(address)
             new_entry.set_processed(False)
             new_entry.set_validity(False)
             db.session.add(new_entry)
+            db.session.flush()
+            ids.append(new_entry.id)
 
         while True:
             try:
@@ -142,12 +149,20 @@ def check():
                 print "During DB commit: " + str(e)
                 time.sleep(1)
 
-        p = Processor(mx_list, use_tor, exit_node_rotation)
-        t = threading.Thread(target=p.start_processing)
-        t.setDaemon(True)
-        t.start()
+        start_celery()
+
+        time.sleep(5)
+        for entry_id in ids:
+            verify_address.delay(entry_id, mx_list, use_tor, 0)
+        # p = Processor(mx_list, use_tor, exit_node_rotation)
+        # t = threading.Thread(target=p.start_processing)
+        # t.setDaemon(True)
+        # t.start()
+
 
         return redirect("/result")
+
+
 
 
 def store_value_in_db(name, val):

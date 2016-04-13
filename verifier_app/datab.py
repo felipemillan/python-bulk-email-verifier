@@ -1,5 +1,5 @@
 from sqlalchemy import create_engine
-from sqlalchemy.orm import scoped_session
+from sqlalchemy.orm import Session
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy.pool import QueuePool
 
@@ -8,5 +8,5 @@ engine = create_engine(
     pool_recycle=3600, poolclass=QueuePool
 )
 
-db_session = scoped_session(sessionmaker(
-    autocommit=False, autoflush=False, bind=engine))
+Session = sessionmaker(autocommit=True, autoflush=False, bind=engine)
+db_session = Session()
