@@ -1,0 +1,141 @@
+{% extends "base.html" %}
+
+{% block title %}Home{% endblock %}
+
+{% block body %}
+    {% block js %}
+        <script xmlns="http://www.w3.org/1999/html">
+            function validateForm() {
+                var x = $("input[name=inputAddressFile]").val();
+                if (x == null || x == "") {
+                    $('#noAddressModal').modal('show')
+                    return false;
+                }
+            }
+        </script>
+    {% endblock %}
+
+    <div class="modal fade" tabindex="-1" role="dialog" id="noAddressModal" aria-labelledby="gridSystemModalLabel">
+        <div class="modal-dialog" role="document">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <button type="button" class="close" data-dismiss="modal" aria-label="Close"><span
+                            aria-hidden="true">&times;</span></button>
+                    <h4 class="modal-title" id="gridSystemModalLabel">Address list empty</h4>
+                </div>
+                <div class="modal-body">
+                    <div class="row">
+                        <div class="col-md-12">
+                            <p>Looks like you forgot to specify address list</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-default" data-dismiss="modal">Close</button>
+                </div>
+            </div><!-- /.modal-content -->
+        </div><!-- /.modal-dialog -->
+    </div><!-- /.modal -->
+
+
+    <div class="row">
+        <div class="col-sm-8 col-sm-offset-2">
+            <h1 class="text-center">Start working with tool</h1>
+            <hr/>
+        </div>
+    </div>
+
+    <form enctype="multipart/form-data" method="POST" role="form" action="{{ url_for('main.check') }}"
+          onsubmit="return validateForm()">
+        <div class="row">
+            <div class="col-md-12">
+                <h2>Step 1</h2>
+                <p>
+                <h3>Specify input emails</h3></p>
+                <p>You need to import list of email addresses from .txt file. Each address should be on its own
+                    line.</p>
+                <br/>
+                <div class="col-md-4">
+                    <div class="form-group">
+                        <label for="inputAddressFile">Addresses list</label>
+                        <input type="file" id="inputAddressFile" name="inputAddressFile">
+                        <p class="help-block">Select .txt or .csv file</p>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+        <hr/>
+
+        <div class="row">
+            <div class="col-md-12">
+                <h3>Step 2</h3>
+                <p>
+                <h3>Specify filters</h3></p>
+                <p>Set keyword, domain and MX record lists. Each list should be a .txt file, containing one record per
+                    line.</p>
+                <br/>
+                <div class="col-md-4">
+                    <div class="form-group">
+                        <label for="inputKeywordFile">Keywords list</label>
+                        <input type="file" id="inputKeywordFile" name="inputKeywordFile">
+                        <p class="help-block">Select .txt file</p>
+                    </div>
+                </div>
+
+                <div class="col-md-4">
+                    <div class="form-group">
+                        <label for="inputDomainFile">Domains list</label>
+                        <input type="file" id="inputDomainFile" name="inputDomainFile">
+                        <p class="help-block">Select .txt file</p>
+                    </div>
+                </div>
+
+                <div class="col-md-4">
+                    <div class="form-group">
+                        <label for="inputMXFile">MX records list</label>
+                        <input type="file" id="inputMXFile" name="inputMXFile">
+                        <p class="help-block">Select .txt file</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <hr/>
+
+        <div class="row">
+            <div class="col-md-12">
+                <h3>Step 3</h3>
+                <p>
+                <h3>TOR configuration</h3></p>
+                <p>Enable or disable working through TOR network. Tool will spawn multiple instances of TOR proxies.</p>
+                <br/>
+                <div class="col-md-4">
+                    <div class="form-group">
+                        <div class="checkbox">
+                            <label>
+                                <input type="checkbox" name="useTOR" id="useTOR" checked="true"> Use TOR network
+                            </label>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <hr/>
+
+        <div class="row">
+            <div class="col-md-12">
+                <h3>Step 4</h3>
+                <p>
+                <h3>Let's go</h3></p>
+                <p>Start checking! It might take some time for script to proceed all the data. Please, be patient.</p>
+                <br/>
+                <div class="col-md-4">
+                    <div class="form-group">
+                        <button type="submit" class="btn btn-default btn-lg">Verify</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <hr/>
+    </form>
+{% endblock %}

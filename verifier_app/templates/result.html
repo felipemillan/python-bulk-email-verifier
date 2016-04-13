@@ -1,0 +1,167 @@
+{% extends "base.html" %}
+
+{% block title %}Results{% endblock %}
+
+{% block js %}
+<script>
+	function update_progress() {
+		status_url = '{{ url_for(".get_tool_status") }}';
+		// send GET request to status URL
+		$.getJSON(status_url, function( data ) {
+			// Show length of initial upload in <p>
+			$('#initial_len').text("Initial upload: " + data["initial_len"]);
+			
+			// Show length after removed duplicates
+			$('#nodups_len').text("After removing duplicates: " + 
+				data["nodups_len"] + 
+				" (" + (data['initial_len'] - data['nodups_len']) + " removed)");
+				
+			// Show length after syntax check
+			$('#after_syntax_len').text("After syntax check: " + 
+				data["after_syntax_len"] + 
+				" (" + (data['nodups_len'] - data['after_syntax_len']) + " removed)");
+
+			// Show length after keywords filter
+			$('#after_keywords_len').text("After keyword filtering: " + 
+				data["after_keywords_len"] + 
+				" (" + (data['after_syntax_len'] - data['after_keywords_len']) + " removed)");
+
+			// Show length after domains filter
+			$('#after_domains_len').text("After domains filtering: " + 
+				data["after_domains_len"] + 
+				" (" + (data['after_keywords_len'] - data['after_domains_len']) + " removed)");
+				
+			$("#keyword_list_len").text('Keyword list: ' + data["keyword_list_len"] + ' entries');
+			$("#domain_list_len").text('Domain list: ' + data["domain_list_len"] + ' entries');
+			$("#mx_list_len").text('MX list: ' + data["mx_list_len"] + ' entries');
+			$("#use_tor").text('Using TOR: ' + data["use_tor"]);
+			$("#exit_node_rotation").text('TOR exit node rotates every ' + data["exit_node_rotation"] + ' requests');
+				
+			$("#total").text('Total number of entries: ' + data['total_count']);
+			$("#processed").text('Numbers of processed entries: ' + data['processed_count']);
+			$("#valid").text('Numbers of valid entries: ' + data['valid_count']);
+			$("#threads").text('Active threads: ' + data["active_threads"])
+			
+			if (data["active_threads"]==0) {
+				$("#progressOverall").css("width", (100 - data['progress_valid']) + "%");
+				$("#progressValid").css("width", data['progress_valid'] + "%");
+				$("#processed").text('Numbers of processed entries: ' + data['total_count']);
+			} else {
+				$("#progressOverall").css("width", (data['progress_overall'] - data['progress_valid']) + "%");
+				$("#progressValid").css("width", data['progress_valid'] + "%");
+			}
+						
+			if (data['total_count'] != data['processed_count']) {
+				setTimeout(function() {
+							update_progress();
+						}, 5000);
+			};
+		});
+	};
+	
+	function send_email() {
+		$.ajax({
+			type: "POST",
+			url: '{{ url_for(".mail_results") }}',
+			data: $("#email").serialize(),
+			success: function(data) {
+				if (data["success"]) {
+					$("#emailAlertDiv").html(
+					'<div class="alert alert-success alert-dismissible fade in" role="alert">' +
+						'<button type="button" class="close" data-dismiss="alert" aria-label="Close">' +
+							'<span aria-hidden="true">×</span>' +
+						'</button>' +
+						'<strong>Success</strong><br/>' +
+						'Mail sent to <strong>' + data["address"] + '</strong>' +
+						'<br/>Valid: ' + data["valid_entry_len"] + ', spam: ' + data["spam_entry_len"] +
+						'</div>'
+					)
+				}
+				else {
+					$("#emailAlertDiv").html(
+					'<div class="alert alert-danger alert-dismissible fade in" role="alert">' +
+						'<button type="button" class="close" data-dismiss="alert" aria-label="Close">' +
+							'<span aria-hidden="true">×</span>' +
+						'</button>' +
+						'<strong>Fail</strong><br/>' +
+						'Failed to send message to <strong>' + data["address"] +
+					'</strong></div>'
+					)
+				}
+		   }});
+	};
+	
+	update_progress();
+</script>
+{% endblock %}
+
+{% block body %}
+
+<div class="row">
+	<div class="col-sm-8 col-sm-offset-2">
+		<h1 class="text-center">Verification results</h1><hr/>
+	</div>
+</div>
+
+<div class="row">
+	<div class="col-md-6">
+		<div class="panel panel-default">
+			<div class="panel-heading">
+				<h3 class="panel-title">Statistic</h3>
+			</div>
+			<div class="panel-body">
+				<p id="initial_len"></p>
+				<p id="nodups_len"></p>
+				<p id="after_syntax_len"></p>
+				<p id="after_keywords_len"></p>
+				<p id="after_domains_len"></p>	
+				<hr/>
+				<p id="keyword_list_len"></p>
+				<p id="domain_list_len"></p>
+				<p id="mx_list_len"></p>
+				<p id="use_tor"></p>
+				<p id="exit_node_rotation"></p>
+			</div>
+		</div>			
+	</div>
+	<div class="col-md-6">
+		<div class="panel panel-default">
+			<div class="panel-heading">
+				<h3 class="panel-title">Progress</h3>
+			</div>
+			<div class="panel-body">
+				<p id="total"></p>
+				<p id="processed"></p>
+				<p id="valid"></p>
+				<div class="progress">
+					<div class="progress-bar progress-bar-success" style="width: 0%" id="progressValid">
+					</div>
+					<div class="progress-bar progress-bar" style="width: 0%" id="progressOverall" />
+					</div>
+				</div>
+				<p id="threads"></p>
+			</div>
+		</div>		
+	</div>
+</div>
+<hr/>
+
+
+<div class="row">
+	<div class="col-md-4 col-md-offset-4">
+		<form id="email">
+		<div class="input-group">
+		  <input type="text" class="form-control" name="address" placeholder="Enter your email...">
+		  <span class="input-group-btn">
+			<button class="btn btn-default" type="button" id="sendMail" role="button" onclick="send_email()">Send!</button>
+		  </span>
+		</div>
+		</form><!-- /input-group -->
+	</div>
+</div><hr/>
+
+<div class="row" id="success_alert">
+	<div class="col-md-4 col-md-offset-4" id="emailAlertDiv">
+	</div>
+</div>
+{% endblock %}
