@@ -14,3 +14,8 @@ and
 cd python-bulk-email-verifier
 sh install.sh
 ```
+To start the tool, run
+```
+nohup python manage.py server > manage.out &
+```
+And visit your IP's 8080 port.
