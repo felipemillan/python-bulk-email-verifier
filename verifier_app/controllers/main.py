@@ -155,6 +155,27 @@ def check():
         return redirect("/result")
 
 
+@main.route("/resume")
+@login_required
+def resume_checking():
+	ids = []
+	
+	entries = db.session.query(EmailEntry).filter(EmailEntry.processed == False)
+	
+	for entry in entries:
+		ids.append(entry.id)
+
+	stop_celery()
+	time.sleep(5)
+	start_celery()
+	time.sleep(5)
+	
+	for entry_id in ids:
+		verify_address.delay(entry_id, mx_list, use_tor, 300)
+
+	return redirect("/result")
+		
+		
 def store_value_in_db(name, val):
     new_row = DBStoredValue(name, val)
     db.session.merge(new_row)
