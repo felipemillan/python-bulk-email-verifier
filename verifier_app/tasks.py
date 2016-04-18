@@ -9,10 +9,9 @@ import socks
 from dns.resolver import NXDOMAIN, NoAnswer
 from stem import Signal
 from stem.control import Controller
-
+from sqlite3 import OperationalError
 from datab import db_session as session
 from extensions import celery_client
-from models import EmailEntry
 
 TOR_HOST = '127.0.0.1'
 TOR_PORT = [9051, 9052, 9053, 9054]
@@ -29,9 +28,7 @@ class WorkerProcess(multiprocessing.Process):
         argv = [
             'worker',
             '--loglevel=INFO',
-            '--concurrency=12',
-            '--purge',
-            '-A verifier_app.tasks',
+            '--concurrency=6',
         ]
         celery_client.worker_main(argv)
 
@@ -53,6 +50,7 @@ def stop_celery():
 
 def clear_all_tasks():
     celery_client.control.purge()
+
 
 worker_name = 'celery@local'
 worker_process = None
@@ -87,11 +85,8 @@ def change_tor_node(port):
         controller.signal(Signal.NEWNYM)
         print "!!! Changed TOR node"
 
-
-@celery_client.task(base=SqlAlchemyTask, max_retries=3, default_retry_delay=1, name='tasks.verify_address')
-def verify_address(entry_id, mx_list, use_tor, rotation_num):
-    entry = session.query(EmailEntry).filter(EmailEntry.id == entry_id).one()
-
+@celery_client.task(base=SqlAlchemyTask, max_retries=3, default_retry_delay=10, name='tasks.verify_address')
+def verify_address(entry, mx_list, use_tor, rotation_num):
     address = entry.get_address()
 
     spam = False
@@ -169,4 +164,7 @@ def verify_address(entry_id, mx_list, use_tor, rotation_num):
     entry.set_processed(True)
 
     session.add(entry)
-    session.flush()
+    try:
+        session.flush()
+    except OperationalError:
+        pass

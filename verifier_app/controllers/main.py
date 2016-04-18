@@ -1,6 +1,6 @@
 import time
 from email import encoders
-import os
+
 from email.MIMEBase import MIMEBase
 from email.MIMEMultipart import MIMEMultipart
 from email.MIMEText import MIMEText
@@ -125,16 +125,13 @@ def check():
         EmailEntry.query.delete()
         db.session.commit()
 
-        ids = []
-
         for address in address_list:
             new_entry = EmailEntry(address)
             new_entry.set_processed(False)
             new_entry.set_validity(False)
             db.session.add(new_entry)
             db.session.flush()
-            ids.append(new_entry.id)
-
+            verify_address.delay(new_entry, mx_list, use_tor, 300)
         while True:
             try:
                 db.session.commit()
@@ -143,10 +140,11 @@ def check():
                 print "During DB commit: " + str(e)
                 time.sleep(1)
 
-        for entry_id in ids:
-            verify_address.delay(entry_id, mx_list, use_tor, 300)
+        # for entry_id in ids:
+        #     verify_address.delay(entry_id, mx_list, use_tor, 300)
 
         return redirect("/result")
+
 
 @main.route("/clear_all")
 @login_required
@@ -155,6 +153,7 @@ def clear_tasks():
     start_celery()
 
     return redirect("/result")
+
 
 @main.route("/resume")
 @login_required
