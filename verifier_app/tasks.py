@@ -28,9 +28,10 @@ class WorkerProcess(multiprocessing.Process):
         argv = [
             'worker',
             '--loglevel=INFO',
-            '--concurrency=6',
+            '--concurrency=24',
         ]
         celery_client.worker_main(argv)
+        celery_client.control.time_limit('verifier_app.tasks.verify_address', soft=45, hard=60, reply=True)
 
 
 def start_celery():
@@ -54,8 +55,6 @@ def clear_all_tasks():
 
 worker_name = 'celery@local'
 worker_process = None
-
-celery_client.control.time_limit('verifier_app.tasks.verify_address', soft=45, hard=60, reply=True)
 
 
 class SqlAlchemyTask(celery.Task):
@@ -166,5 +165,5 @@ def verify_address(entry, mx_list, use_tor, rotation_num):
     session.add(entry)
     try:
         session.flush()
-    except OperationalError:
-        pass
+    except Exception:
+        return None

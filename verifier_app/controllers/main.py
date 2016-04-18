@@ -130,7 +130,6 @@ def check():
             new_entry.set_processed(False)
             new_entry.set_validity(False)
             db.session.add(new_entry)
-            db.session.flush()
             verify_address.delay(new_entry, mx_list, use_tor, 300)
         while True:
             try:
