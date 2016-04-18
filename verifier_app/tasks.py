@@ -30,7 +30,7 @@ class WorkerProcess(multiprocessing.Process):
             'worker',
             '--loglevel=INFO',
             '--concurrency=12',
-            'purge',
+            '--purge',
             '-A verifier_app.tasks',
         ]
         celery_client.worker_main(argv)
