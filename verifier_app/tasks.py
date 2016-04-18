@@ -10,9 +10,9 @@ from dns.resolver import NXDOMAIN, NoAnswer
 from stem import Signal
 from stem.control import Controller
 
-from datab import db_session as session
+#from datab import db_session as session
 from extensions import celery_client
-from models import EmailEntry
+from models import EmailEntry, db
 
 TOR_HOST = '127.0.0.1'
 TOR_PORT = [9051, 9052, 9053, 9054]
@@ -90,7 +90,7 @@ def change_tor_node(port):
 
 @celery_client.task(base=SqlAlchemyTask, max_retries=3, default_retry_delay=1, name='tasks.verify_address')
 def verify_address(entry_id, mx_list, use_tor, rotation_num):
-    entry = session.query(EmailEntry).filter(EmailEntry.id == entry_id).one()
+    entry = db.session.query(EmailEntry).filter(EmailEntry.id == entry_id).one()
 
     address = entry.get_address()
 
@@ -168,5 +168,5 @@ def verify_address(entry_id, mx_list, use_tor, rotation_num):
     entry.set_spam(spam)
     entry.set_processed(True)
 
-    session.add(entry)
-    session.flush()
+    db.session.add(entry)
+    db.session.flush()
