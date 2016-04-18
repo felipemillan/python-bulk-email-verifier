@@ -1,6 +1,6 @@
 import time
 from email import encoders
-
+import os
 from email.MIMEBase import MIMEBase
 from email.MIMEMultipart import MIMEMultipart
 from email.MIMEText import MIMEText
@@ -11,8 +11,7 @@ from verifier_app.extensions import cache
 from verifier_app.filters import *
 from verifier_app.forms import LoginForm
 from verifier_app.models import User, EmailEntry, db, DBStoredValue
-from verifier_app.tasks import start_celery, stop_celery
-from verifier_app.tasks import verify_address
+from verifier_app.tasks import verify_address, start_celery, stop_celery
 
 main = Blueprint('main', __name__)
 thread = None
@@ -122,8 +121,6 @@ def check():
         options["after_domains_len"] = len(address_list)
         store_value_in_db("after_domains_len", len(address_list))
 
-        stop_celery()
-
         # Deleting previous data
         EmailEntry.query.delete()
         db.session.commit()
@@ -146,36 +143,35 @@ def check():
                 print "During DB commit: " + str(e)
                 time.sleep(1)
 
-        start_celery()
-
-        time.sleep(5)
         for entry_id in ids:
             verify_address.delay(entry_id, mx_list, use_tor, 300)
 
         return redirect("/result")
 
+@main.route("/clear_all")
+@login_required
+def clear_tasks():
+    stop_celery()
+    start_celery()
+
+    return redirect("/result")
 
 @main.route("/resume")
 @login_required
 def resume_checking():
-	ids = []
-	
-	entries = db.session.query(EmailEntry).filter(EmailEntry.processed == False)
-	
-	for entry in entries:
-		ids.append(entry.id)
+    ids = []
 
-	stop_celery()
-	time.sleep(5)
-	start_celery()
-	time.sleep(5)
-	
-	for entry_id in ids:
-		verify_address.delay(entry_id, mx_list, use_tor, 300)
+    entries = db.session.query(EmailEntry).filter(EmailEntry.processed == False)
 
-	return redirect("/result")
-		
-		
+    for entry in entries:
+        ids.append(entry.id)
+
+    for entry_id in ids:
+        verify_address.delay(entry_id, mx_list, use_tor, 300)
+
+    return redirect("/result")
+
+
 def store_value_in_db(name, val):
     new_row = DBStoredValue(name, val)
     db.session.merge(new_row)

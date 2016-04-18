@@ -2,16 +2,16 @@
 
 from flask import Flask
 from webassets.loaders import PythonLoader as PythonAssetsLoader
-
 from verifier_app import assets
 from verifier_app.models import db
 from verifier_app.controllers.main import main
-
+from verifier_app.tasks import start_celery
 from verifier_app.extensions import (
     cache,
     assets_env,
     debug_toolbar,
-    login_manager
+    login_manager,
+    celery_client
 )
 
 
@@ -48,5 +48,14 @@ def create_app(object_name):
 
     # register our blueprints
     app.register_blueprint(main)
+
+    app.config['CELERY_BROKER_URL'] = 'redis://localhost:6379/0'
+    app.config['CELERY_RESULT_BACKEND'] = 'redis://localhost:6379/0'
+
+    celery_client.__init__(main=app.name, broker=app.config['CELERY_BROKER_URL'],
+                           backend=app.config['CELERY_RESULT_BACKEND'])
+    celery_client.conf.update(app.config)
+
+    start_celery()
 
     return app

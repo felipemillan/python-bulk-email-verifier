@@ -6,12 +6,12 @@ from random import randint
 
 import dns
 import socks
-from celery import Celery
 from dns.resolver import NXDOMAIN, NoAnswer
 from stem import Signal
 from stem.control import Controller
 
 from datab import db_session as session
+from extensions import celery_client
 from models import EmailEntry
 
 TOR_HOST = '127.0.0.1'
@@ -29,10 +29,11 @@ class WorkerProcess(multiprocessing.Process):
         argv = [
             'worker',
             '--loglevel=INFO',
-            '--concurrency=24',
-            '--purge'
+            '--concurrency=12',
+            'purge',
+            '-A verifier_app.tasks',
         ]
-        app.worker_main(argv)
+        celery_client.worker_main(argv)
 
 
 def start_celery():
@@ -43,17 +44,20 @@ def start_celery():
 
 
 def stop_celery():
+    celery_client.control.purge()
     global worker_process
     if worker_process:
         worker_process.terminate()
         worker_process = None
 
 
+def clear_all_tasks():
+    celery_client.control.purge()
+
 worker_name = 'celery@local'
 worker_process = None
 
-app = Celery('verifier_app.tasks', broker='redis://localhost:6379/0', backend='redis://localhost')
-app.control.time_limit('verifier_app.tasks.verify_address', soft=45, hard=60, reply=True)
+celery_client.control.time_limit('verifier_app.tasks.verify_address', soft=45, hard=60, reply=True)
 
 
 class SqlAlchemyTask(celery.Task):
@@ -84,7 +88,7 @@ def change_tor_node(port):
         print "!!! Changed TOR node"
 
 
-@app.task(base=SqlAlchemyTask, max_retries=3, default_retry_delay=1)
+@celery_client.task(base=SqlAlchemyTask, max_retries=3, default_retry_delay=1, name='tasks.verify_address')
 def verify_address(entry_id, mx_list, use_tor, rotation_num):
     entry = session.query(EmailEntry).filter(EmailEntry.id == entry_id).one()
 
@@ -95,7 +99,7 @@ def verify_address(entry_id, mx_list, use_tor, rotation_num):
     code, message = None, None
 
     # Address used for SMTP MAIL FROM command
-    from_address = "bot@compute.amazonaws.com"
+    from_address = "checker@someplace.com"
 
     # Email address to verify
     address_to_verify = str(address)
@@ -139,7 +143,8 @@ def verify_address(entry_id, mx_list, use_tor, rotation_num):
     if use_tor and rotation_num:
         if rotation_num == randint(0, rotation_num):
             for tor_port in TOR_PORT:
-                change_tor_node(tor_port)
+                # change_tor_node(tor_port)
+                pass
 
     # SMTP Conversation
     try:
