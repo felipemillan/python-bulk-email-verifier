@@ -4,7 +4,7 @@ from sqlalchemy.orm import sessionmaker
 from sqlalchemy.pool import QueuePool
 
 engine = create_engine(
-    'sqlite:///database.db', convert_unicode=True,
+    'sqlite:///../database.db', convert_unicode=True,
     pool_recycle=3600, poolclass=QueuePool
 )
 
