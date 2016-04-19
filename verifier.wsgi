@@ -1,3 +1,3 @@
 import sys
-sys.path.insert(0, '/home/ubuntu/project_main')
+sys.path.insert(0, '/var/www/python-bulk-email-verifier')
 from manage import app as application
