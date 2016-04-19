@@ -23,12 +23,12 @@ sh install.sh
 ```
 vhost content
 ```
-WSGIDaemonProcess fbone user=wilson group=wilson threads=5
-WSGIScriptAlias /fbone /var/www/fbone/app.wsgi
+WSGIDaemonProcess verifier user=www-data group=www-data threads=5
+WSGIScriptAlias / /var/www/python-bulk-email-verifier/verifier.wsgi
 
-<Directory /var/www/fbone/>
+<Directory /var/www/python-bulk-email-verifier/>
     WSGIScriptReloading On
-    WSGIProcessGroup fbone
+    WSGIProcessGroup verifier
     WSGIApplicationGroup %{GLOBAL}
     Order deny,allow
     Allow from all
