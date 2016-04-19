@@ -11,7 +11,7 @@ from verifier_app.extensions import cache
 from verifier_app.filters import *
 from verifier_app.forms import LoginForm
 from verifier_app.models import User, EmailEntry, db, DBStoredValue
-from verifier_app.tasks import verify_address, start_celery, stop_celery
+from verifier_app.tasks import verify_address
 
 main = Blueprint('main', __name__)
 thread = None
@@ -143,15 +143,6 @@ def check():
         #     verify_address.delay(entry_id, mx_list, use_tor, 300)
 
         return redirect("/result")
-
-
-@main.route("/clear_all")
-@login_required
-def clear_tasks():
-    stop_celery()
-    start_celery()
-
-    return redirect("/result")
 
 
 @main.route("/resume")

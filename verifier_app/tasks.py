@@ -1,4 +1,3 @@
-import os
 import smtplib
 import socket
 from random import choice
@@ -9,62 +8,12 @@ import socks
 from dns.resolver import NXDOMAIN, NoAnswer
 from stem import Signal
 from stem.control import Controller
-from sqlite3 import OperationalError
+
 from datab import db_session as session
 from extensions import celery_client
 
 TOR_HOST = '127.0.0.1'
 TOR_PORT = [9051, 9052, 9053, 9054]
-
-import celery
-import multiprocessing
-
-
-class WorkerProcess(multiprocessing.Process):
-    def __init__(self):
-        multiprocessing.Process.__init__(self)
-
-    def run(self):
-        argv = [
-            'worker',
-            '--loglevel=INFO',
-            '--concurrency=24',
-        ]
-        celery_client.worker_main(argv)
-        celery_client.control.time_limit('verifier_app.tasks.verify_address', soft=45, hard=60, reply=True)
-
-
-def start_celery():
-    os.environ["C_FORCE_ROOT"] = 'true'
-    global worker_process
-    worker_process = WorkerProcess()
-    worker_process.start()
-
-
-def stop_celery():
-    celery_client.control.purge()
-    global worker_process
-    if worker_process:
-        worker_process.terminate()
-        worker_process = None
-
-
-def clear_all_tasks():
-    celery_client.control.purge()
-
-
-worker_name = 'celery@local'
-worker_process = None
-
-
-class SqlAlchemyTask(celery.Task):
-    """An abstract Celery Task that ensures that the connection the the
-    database is closed on task completion"""
-    abstract = True
-
-    def after_return(self, status, retval, task_id, args, kwargs, einfo):
-        # session.remove()
-        pass
 
 
 # Custom connection for SMTP lib
@@ -84,7 +33,8 @@ def change_tor_node(port):
         controller.signal(Signal.NEWNYM)
         print "!!! Changed TOR node"
 
-@celery_client.task(base=SqlAlchemyTask, max_retries=3, default_retry_delay=10, name='tasks.verify_address')
+
+@celery_client.task(max_retries=3, default_retry_delay=10, bind=True)
 def verify_address(entry, mx_list, use_tor, rotation_num):
     address = entry.get_address()
 
@@ -104,16 +54,20 @@ def verify_address(entry, mx_list, use_tor, rotation_num):
 
     # Check for 'A' record
     try:
-        records = dns.resolver.query(domain, 'A')
+        dns.resolver.query(domain, 'A')
     except NXDOMAIN:
         a_record = False
     except NoAnswer:
         a_record = False
 
     # MX record lookup
-    records = dns.resolver.query(domain, 'MX')
-    address_mx_record = records[0].exchange
-    address_mx_record = str(address_mx_record)
+    try:
+        records = dns.resolver.query(domain, 'MX')
+        address_mx_record = records[0].exchange
+        address_mx_record = str(address_mx_record)
+    except NoAnswer:
+        validity = False
+
 
     # Checking MX records from list. If any found, then return false
     if any(mx_record in address_mx_record for mx_record in mx_list):

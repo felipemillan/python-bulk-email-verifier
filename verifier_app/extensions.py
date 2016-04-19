@@ -17,7 +17,7 @@ login_manager = LoginManager()
 login_manager.login_view = "main.login"
 login_manager.login_message_category = "warning"
 
-celery_client = Celery()
+celery_client = Celery('verifier_app.tasks', broker='redis://localhost:6379/0', backend='redis://localhost:6379/0')
 
 @login_manager.user_loader
 def load_user(userid):
