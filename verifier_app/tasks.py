@@ -11,6 +11,7 @@ from stem.control import Controller
 
 from datab import db_session as session
 from extensions import celery_client
+from models import EmailEntry
 
 TOR_HOST = '127.0.0.1'
 TOR_PORT = [9051, 9052, 9053, 9054]
@@ -35,7 +36,13 @@ def change_tor_node(port):
 
 
 @celery_client.task(max_retries=3, default_retry_delay=10, bind=True)
-def verify_address(entry, mx_list, use_tor, rotation_num):
+def verify_address(self, entry_id, mx_list, use_tor, rotation_num):
+    try:
+        entry = session.query(EmailEntry).filter(EmailEntry.id==entry_id).one()
+    except Exception as e:
+        print e
+        self.retry()
+
     address = entry.get_address()
 
     spam = False
@@ -117,7 +124,8 @@ def verify_address(entry, mx_list, use_tor, rotation_num):
     entry.set_processed(True)
 
     session.add(entry)
+
     try:
         session.flush()
-    except Exception:
-        return None
+    except Exception as exc:
+        self.retry(exc=exc)

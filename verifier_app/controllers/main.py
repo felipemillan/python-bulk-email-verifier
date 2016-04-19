@@ -130,7 +130,6 @@ def check():
             new_entry.set_processed(False)
             new_entry.set_validity(False)
             db.session.add(new_entry)
-            verify_address.delay(new_entry, mx_list, use_tor, 300)
         while True:
             try:
                 db.session.commit()
@@ -138,9 +137,8 @@ def check():
             except Exception as e:
                 print "During DB commit: " + str(e)
                 time.sleep(1)
-
-        # for entry_id in ids:
-        #     verify_address.delay(entry_id, mx_list, use_tor, 300)
+        for entry in EmailEntry.query.all():
+            verify_address.delay(entry.id, mx_list, use_tor, 300)
 
         return redirect("/result")
 
