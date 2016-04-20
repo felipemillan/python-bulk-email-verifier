@@ -66,3 +66,7 @@ target/
 
 data/
 database.db
+*.out
+database.db
+*.db
+database.db

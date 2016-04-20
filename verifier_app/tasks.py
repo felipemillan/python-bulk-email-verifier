@@ -35,7 +35,7 @@ def change_tor_node(port):
         print "!!! Changed TOR node"
 
 
-@celery_client.task(max_retries=3, default_retry_delay=10, bind=True)
+@celery_client.task(max_retries=3, default_retry_delay=10, bind=True, time_limit=90)
 def verify_address(self, entry_id, mx_list, use_tor, rotation_num):
     try:
         entry = session.query(EmailEntry).filter(EmailEntry.id==entry_id).one()
@@ -83,7 +83,18 @@ def verify_address(self, entry_id, mx_list, use_tor, rotation_num):
             spam = True
         else:
             spam = False
-        return validity, spam
+
+        entry.set_validity(validity)
+        entry.set_spam(spam)
+        entry.set_processed(True)
+
+        session.add(entry)
+
+        try:
+            session.flush()
+            return
+        except Exception as exc:
+            self.retry(exc=exc)
 
     # Get local server hostname
     host = socket.gethostname()

@@ -1,4 +1,5 @@
 import time
+import os
 from email import encoders
 
 from email.MIMEBase import MIMEBase
@@ -97,7 +98,7 @@ def check():
         # At last, TOR usage
         use_tor = bool(request.form.getlist('useTOR'))
         if use_tor:
-            pass
+            print __file__
         else:
             flash("You don't use TOR network", "info")
         store_value_in_db("use_tor", use_tor)
@@ -138,25 +139,9 @@ def check():
                 print "During DB commit: " + str(e)
                 time.sleep(1)
         for entry in EmailEntry.query.all():
-            verify_address.delay(entry.id, mx_list, use_tor, 300)
+            verify_address.delay(entry.id, mx_list, use_tor, 0)
 
         return redirect("/result")
-
-
-@main.route("/resume")
-@login_required
-def resume_checking():
-    ids = []
-
-    entries = db.session.query(EmailEntry).filter(EmailEntry.processed == False)
-
-    for entry in entries:
-        ids.append(entry.id)
-
-    for entry_id in ids:
-        verify_address.delay(entry_id, mx_list, use_tor, 300)
-
-    return redirect("/result")
 
 
 def store_value_in_db(name, val):
@@ -211,6 +196,18 @@ def get_tool_status():
             return jsonify(result)
         except Exception as e:
             print "During status fetch: " + str(e)
+
+
+@main.route("/restart_worker")
+@login_required
+def restart_worker():
+    os.system("ps auxww | grep 'celery worker' | awk '{print $2}' | xargs kill -9")
+    time.sleep(5)
+    os.system("nohup celery worker -A verifier_app.tasks --loglevel=INFO --concurrency=12 --purge > celery.out &")
+    time.sleep(5)
+    status = dict()
+    status["success"] = True
+    return jsonify(status)
 
 
 @main.route("/mail_results", methods=["POST"])
