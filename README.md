@@ -2,9 +2,9 @@
 Web-based service for Email address verification based on Python+Flask
 # UI example
 This is how initial upload to the tool looks like
-![image](https://cloud.githubusercontent.com/assets/7872919/14596854/f31282ac-056a-11e6-8fd7-14c4e092e517.png)
+![image](https://cloud.githubusercontent.com/assets/7872919/15464624/4c3c4a0a-20f2-11e6-8af8-fb6bb7150561.png)
 And this is progress monitor
-![image](https://cloud.githubusercontent.com/assets/7872919/14596855/f3143926-056a-11e6-8685-29f48ec492df.png)
+![image](https://cloud.githubusercontent.com/assets/7872919/15464626/4f28e9bc-20f2-11e6-8e7d-dd902e3fb317.png)
 # Installation
 You'll need GIT to download source
 ```
